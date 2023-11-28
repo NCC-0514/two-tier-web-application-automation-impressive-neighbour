@@ -1,0 +1,30 @@
+name: Ansible Linting
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '*'
+  workflow_run:
+    workflows: ["Deploy to Staging", "Deploy to Production"]
+    types:
+      - completed
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Ansible Lint
+        run: pip install ansible-lint
+
+      - name: Run Ansible Lint
+        run: ansible-lint playbook.yml
