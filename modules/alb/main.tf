@@ -29,7 +29,10 @@ data "terraform_remote_state" "web_server" {
 
 # Data source for an existing security group (alb_sg)
 data "aws_security_group" "existing_sg" {
-  name = "alb_sg"
+  filter {
+    name   = "group-name"
+    values = ["alb security group"]
+  }
   vpc_id = data.terraform_remote_state.network.outputs.vpc_id
 }
 
