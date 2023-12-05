@@ -101,6 +101,66 @@ dynamic "ingress" {
     }
 }
 
+# Explicitly allow incoming traffic on ports 80 (HTTP) and 443 (HTTPS) from the ALB
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    security_groups = [aws_security_group.alb_sg.id]
+    protocol        = "tcp"
+  }
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    security_groups = [aws_security_group.alb_sg.id]
+    protocol        = "tcp"
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-sg"
+    }
+  )
+}
+
+  # Explicitly allow incoming traffic on ports 80 (HTTP) and 443 (HTTPS) from the ALB
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    security_groups = [aws_security_group.alb_sg.id]
+    protocol        = "tcp"
+  }
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    security_groups = [aws_security_group.alb_sg.id]
+    protocol        = "tcp"
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = merge(local.default_tags,
+    {
+      "Name" = "${local.name_prefix}-sg"
+    }
+  )
+}
+
 # Security Group for Bastion Host
 resource "aws_security_group" "bastion_sg" {
   name        = "${local.name_prefix}-bastion-sg"
