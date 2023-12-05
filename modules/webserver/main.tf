@@ -153,7 +153,7 @@ resource "aws_security_group" "bastion_sg" {
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
 
   ingress {
-    description = "SSH from private IP of CLoud9 machine"
+    description = "Allow SSh inbound traffic from anywhere"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
