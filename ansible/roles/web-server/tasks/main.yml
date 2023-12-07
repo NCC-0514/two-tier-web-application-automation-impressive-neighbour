@@ -1,0 +1,11 @@
+- name: Install Nginx
+  yum:
+    name: nginx
+    state: present
+
+- name: Deploy HTML file
+  template:
+    src: index.html
+    dest: /usr/share/nginx/html/index.html
+  notify:
+    - Reload Nginx

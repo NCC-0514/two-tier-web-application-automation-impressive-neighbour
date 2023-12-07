@@ -1,0 +1,20 @@
+- name: Create a temporary directory for the image
+  ansible.builtin.file:
+    path: "./temp"
+    state: directory
+
+- name: Check if the file exists locally
+  ansible.builtin.stat:
+    path: "./temp/image.jpg"
+  register: file_status
+
+- name: Download image locally (if not already downloaded)
+  ansible.builtin.uri:
+    url: "https://robohash.org/Impressive%20neighbours?set=set4"
+    dest: "./temp/image.jpg"
+  when: not file_status.stat.exists | default(false)
+  
+- name: Upload image to S3 bucket
+  community.aws.s3_sync:
+    bucket: impressive-neighbours-staging-komal
+    file_root: "./temp/image.jpg"
