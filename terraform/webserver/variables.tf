@@ -35,4 +35,16 @@ variable "service_ports" {
   description = "Ports that should be open on a webserver"
 }
 
+# Prefix for alb name
+variable "alb_name_prefix" {
+  default     = "Impressive"
+  type        = string
+  description = "Prefix for ALB resource names"
+}
+
+variable "alb_ports" {
+  type        = list(string)
+  default     = ["80"]
+  description = "Ports that should be open on a webserver"
+}
 

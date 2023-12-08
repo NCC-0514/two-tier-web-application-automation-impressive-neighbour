@@ -1,4 +1,4 @@
-#  Define the provider
+# Define the provider
 provider "aws" {
   region = "us-east-1"
 }
@@ -17,7 +17,7 @@ data "aws_ami" "latest_amazon_linux" {
 data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
   backend = "s3"
   config = {
-    bucket = "impressive-neighbours-staging"      // Bucket from where to GET Terraform State
+    bucket = "impressive-neighbours-staging-komal"      // Bucket from where to GET Terraform State
     key    = "network/terraform.tfstate" // Object name in the bucket to GET Terraform State
     region = "us-east-1"                            // Region where bucket created
   }
@@ -49,12 +49,6 @@ resource "aws_instance" "web_server" {
   subnet_id                   = data.terraform_remote_state.network.outputs.private_subnet_ids[count.index]
   security_groups             = [aws_security_group.web_sg.id]
   associate_public_ip_address = false
-  user_data = templatefile("${path.module}/install_httpd.sh.tpl",
-    {
-      env    = upper(var.env),
-      prefix = upper(local.name_prefix)
-    }
-  )
 
   root_block_device {
   encrypted = var.env == "prod"
@@ -66,7 +60,7 @@ resource "aws_instance" "web_server" {
 
   tags = merge(local.default_tags,
     {
-      "Name" = "${local.name_prefix}-webserver-${count.index}"
+      "Name" = "${local.name_prefix}-webserver"
     }
   )
 }
@@ -94,12 +88,12 @@ resource "aws_security_group" "web_sg" {
     }
   }
 
-  # Explicitly allow incoming traffic on ports 80 (HTTP) and 443 (HTTPS) from the ALB
   ingress {
-    from_port       = 80
-    to_port         = 80
-    security_groups = [aws_security_group.alb_sg.id]
-    protocol        = "tcp"
+      from_port       = 80
+      to_port         = 80
+      security_groups = [aws_security_group.bastion_sg.id, aws_security_group.alb_sg.id]
+      protocol        = "tcp"
+      description     = "Allow traffic from ALB on port"
   }
 
   ingress {
@@ -134,7 +128,6 @@ resource "aws_instance" "bastion" {
   security_groups             = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true
 
-
   lifecycle {
     create_before_destroy = true
   }
@@ -153,7 +146,7 @@ resource "aws_security_group" "bastion_sg" {
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_id
 
   ingress {
-    description = "Allow SSh inbound traffic from anywhere"
+    description = "Allow SSH inbound traffic from anywhere"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -188,6 +181,20 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]  // Allow traffic from any source (update as needed)
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  // Allow traffic from any source (update as needed)
+  }
+  
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  // Allow traffic from any source (update as needed)
+  }
+
   // Define egress rules
   egress {
     from_port   = 0
@@ -201,6 +208,114 @@ resource "aws_security_group" "alb_sg" {
     local.default_tags,
     {
       Name = "alb_sg"
+    }
+  )
+}
+
+resource "aws_launch_configuration" "web_server_lc" {
+  name = "web-server-lc"
+  image_id = data.aws_ami.latest_amazon_linux.id
+  instance_type = lookup(var.instance_type, var.env)
+  key_name = aws_key_pair.web_key.key_name
+  security_groups = [aws_security_group.web_sg.id]
+
+  root_block_device {
+    encrypted = var.env == "prod"
+  }
+}
+
+resource "aws_autoscaling_group" "web_server_asg" {
+  desired_capacity     = 3
+  max_size             = 4
+  min_size             = 3
+  launch_configuration = aws_launch_configuration.web_server_lc.id
+  vpc_zone_identifier  = data.terraform_remote_state.network.outputs.private_subnet_ids
+
+  health_check_type          = "EC2"
+  health_check_grace_period  = 300
+  force_delete               = true
+
+  tag {
+    key                 = "Name"
+    value               = "${local.name_prefix}-webserver"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# ALB Configuration
+resource "aws_lb" "web_alb" {
+  name               = "${var.alb_name_prefix}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+
+  enable_deletion_protection = false
+
+  subnets = [
+    data.terraform_remote_state.network.outputs.public_subnet_ids[0],
+    data.terraform_remote_state.network.outputs.public_subnet_ids[1],
+    data.terraform_remote_state.network.outputs.public_subnet_ids[2],
+  ]
+  
+  enable_cross_zone_load_balancing = true
+
+  tags = merge(
+    local.default_tags,
+    {
+      Name = "${local.name_prefix}-alb"
+    }
+  )
+}
+
+# Target Group for ALB
+resource "aws_lb_target_group" "web_tg" {
+  name     = "${var.alb_name_prefix}-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.terraform_remote_state.network.outputs.vpc_id
+  target_type = "instance"
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    interval            = 30
+    path                = "/"
+    protocol            = "HTTP"
+  }
+
+  tags = merge(
+    local.default_tags, {
+      Name = "${local.name_prefix}-tg"
+    }
+  )
+}
+
+# Associate the web server instances with target groups
+resource "aws_lb_target_group_attachment" "web_tg_attachment" {
+  count             = length(aws_instance.web_server)
+  target_group_arn  = aws_lb_target_group.web_tg.arn
+  target_id         = aws_instance.web_server[count.index].id
+}
+
+# Listener for ALB
+resource "aws_lb_listener" "web_front_end" {
+  load_balancer_arn = aws_lb.web_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web_tg.arn
+  }
+
+  tags = merge(
+    local.default_tags, {
+      Name = "${local.name_prefix}-front_end"
     }
   )
 }
