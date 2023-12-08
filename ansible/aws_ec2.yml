@@ -7,7 +7,7 @@ keyed_groups:
 hostnames:
   - tag:Name
 filters:
-  instance-state-name : running
+  instance-state-name: running
 compose:
   ansible_host: public_ip_address
   private_ip_address: private_ip_address

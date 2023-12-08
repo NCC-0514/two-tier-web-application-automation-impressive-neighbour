@@ -49,7 +49,7 @@ resource "aws_instance" "web_server" {
   subnet_id                   = data.terraform_remote_state.network.outputs.private_subnet_ids[count.index]
   security_groups             = [aws_security_group.web_sg.id]
   associate_public_ip_address = false
-
+  
   root_block_device {
   encrypted = var.env == "prod"
   }
@@ -60,7 +60,7 @@ resource "aws_instance" "web_server" {
 
   tags = merge(local.default_tags,
     {
-      "Name" = "${local.name_prefix}-webserver"
+      "Name" = "webserver"
     }
   )
 }
@@ -134,7 +134,7 @@ resource "aws_instance" "bastion" {
 
   tags = merge(local.default_tags,
     {
-      "Name" = "${local.name_prefix}-bastion"
+      "Name" = "bastion"
     }
   )
 }
@@ -218,7 +218,7 @@ resource "aws_launch_configuration" "web_server_lc" {
   instance_type = lookup(var.instance_type, var.env)
   key_name = aws_key_pair.web_key.key_name
   security_groups = [aws_security_group.web_sg.id]
-
+  
   root_block_device {
     encrypted = var.env == "prod"
   }
@@ -237,7 +237,7 @@ resource "aws_autoscaling_group" "web_server_asg" {
 
   tag {
     key                 = "Name"
-    value               = "${local.name_prefix}-webserver"
+    value               = "webserver"
     propagate_at_launch = true
   }
 

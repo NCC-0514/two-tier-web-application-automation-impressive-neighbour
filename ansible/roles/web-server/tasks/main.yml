@@ -1,7 +1,14 @@
+- name: Update package manager cache
+  yum:
+    name: '*'
+    state: latest
+  become: yes
+
 - name: Install Nginx
   yum:
     name: nginx
     state: present
+  become: yes
 
 - name: Deploy HTML file
   template:
@@ -9,3 +16,4 @@
     dest: /usr/share/nginx/html/index.html
   notify:
     - Reload Nginx
+  become: yes
