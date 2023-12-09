@@ -1,19 +1,14 @@
-- name: Update package manager cache
-  yum:
-    name: '*'
-    state: latest
-  become: yes
-
-- name: Install Nginx
-  yum:
-    name: nginx
+---
+- name: Install Apache Web Server
+  package:
+    name: httpd
     state: present
   become: yes
 
-- name: Deploy HTML file
+- name: Generate index.html from jinja2 template and copy to the remote host
   template:
-    src: index.html
-    dest: /usr/share/nginx/html/index.html
+    src: index.html.j2
+    dest: "{{ dest_folder }}/index.html"
   notify:
-    - Reload Nginx
+    - Reload Apache
   become: yes

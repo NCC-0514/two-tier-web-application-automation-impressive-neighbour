@@ -1,5 +1,5 @@
-- name: Reload Nginx
-  systemd:
-    name: nginx
-    state: restarted
-  become: yes
+---
+- name: Reload Apache
+  service:
+    name: httpd
+    state: reloaded

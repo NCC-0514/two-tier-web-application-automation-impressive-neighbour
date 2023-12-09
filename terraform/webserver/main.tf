@@ -246,6 +246,71 @@ resource "aws_autoscaling_group" "web_server_asg" {
   }
 }
 
+# Autoscaling Policy for Scaling Up
+resource "aws_autoscaling_policy" "scale_out_policy" {
+  name                   = "${var.prefix}-scale-out-policy"
+  scaling_adjustment     = 1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.web_server_asg.name
+}
+
+# Autoscaling Policy for Scaling Down
+resource "aws_autoscaling_policy" "scale_in_policy" {
+  name                   = "${var.prefix}-scale-in-policy"
+  scaling_adjustment     = -1
+  adjustment_type        = "ChangeInCapacity"
+  cooldown               = 300
+  autoscaling_group_name = aws_autoscaling_group.web_server_asg.name
+
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu_alarm" {
+  alarm_name          = "${var.prefix}-high-cpu-usage"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 10
+
+  alarm_actions = [aws_autoscaling_policy.scale_out_policy.arn]
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.web_server_asg.name
+  }
+  
+   tags = merge(
+    local.default_tags, {
+      Name = "${local.name_prefix}-high-cpu-alarm"
+    }
+  )
+}
+
+resource "aws_cloudwatch_metric_alarm" "low_cpu_alarm" {
+  alarm_name          = "${var.prefix}-low-cpu-usage"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 5
+
+  alarm_actions = [aws_autoscaling_policy.scale_in_policy.arn]
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.web_server_asg.name
+  }
+  
+   tags = merge(
+    local.default_tags, {
+      Name = "${local.name_prefix}-low-cpu-alarm"
+    }
+  )
+}
+
 # ALB Configuration
 resource "aws_lb" "web_alb" {
   name               = "${var.alb_name_prefix}-alb"
