@@ -7,7 +7,7 @@
 
 - name: Generate index.html from jinja2 template and copy to the remote host
   template:
-    src: index.html.j2
+    src: index.html
     dest: "/var/www/html/index.html"
   notify:
     - Reload Apache
