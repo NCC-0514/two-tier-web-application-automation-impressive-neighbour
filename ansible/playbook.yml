@@ -35,6 +35,3 @@
   
   roles:
     - web-server
-    
-  vars:
-    dest_folder: "/var/www/html"
