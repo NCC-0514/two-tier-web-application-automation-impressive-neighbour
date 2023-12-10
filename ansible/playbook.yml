@@ -1,0 +1,37 @@
+---
+- name: all the options
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Install community.aws collection
+      ansible.builtin.command:
+        cmd: ansible-galaxy collection install community.aws
+
+- name: upload image
+  hosts: localhost
+  gather_facts: false
+
+  roles:
+    - uploadimage
+
+- name: configuration of bastion_host
+  hosts: tag_bastion
+  become: yes
+  remote_user: ec2-user
+
+  vars:
+    ansible_ssh_private_key_file: Impressive-staging
+
+- name: webserver
+  hosts: tag_webserver
+  become: yes
+  remote_user: ec2-user
+  
+  vars:
+    ansible_ssh_private_key_file: Impressive-staging
+    ansible_ssh_common_args: '-o Proxycommand="ssh -i Impressive-staging -W %h:%p ec2-user@{{ hostvars.bastion.public_ip_address }}"'
+    ansible_host: "{{ private_ip_address }}"
+  
+  roles:
+    - web-server

@@ -1,0 +1,14 @@
+---
+- name: Install Apache Web Server
+  package:
+    name: httpd
+    state: present
+  become: yes
+
+- name: Generate index.html from jinja2 template and copy to the remote host
+  template:
+    src: index.html
+    dest: "/var/www/html/index.html"
+  notify:
+    - Reload Apache
+  become: yes
