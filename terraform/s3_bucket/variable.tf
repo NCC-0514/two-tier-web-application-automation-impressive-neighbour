@@ -1,6 +1,6 @@
 variable "environment" {
   description = "The environment name"
-  default = "staging"
+  default = "production"
   type        = string
 }
  

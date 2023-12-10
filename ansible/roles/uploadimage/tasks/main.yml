@@ -16,5 +16,5 @@
   
 - name: Upload image to S3 bucket
   community.aws.s3_sync:
-    bucket: staging-image-komal
+    bucket: production-image-komal
     file_root: "./temp/image.jpg"

@@ -1,7 +1,7 @@
 # Instance type
 variable "instance_type" {
   default = {
-    "prod"    = "t3.medium"
+    "production"    = "t3.medium"
     "staging" = "t3.small"
   }
   description = "Type of the instance"
@@ -17,7 +17,7 @@ variable "default_tags" {
 
 # Variable to signal the current environment 
 variable "env" {
-  default     = "staging"
+  default     = "production"
   type        = string
   description = "Deployment Environment"
 }
