@@ -1,7 +1,0 @@
-terraform {
-  backend "s3" {
-    bucket = "impressive-neighbours-prod-raj"
-    key    = "webserver/terraform.tfstate"
-    region = "us-east-1"
-  }
-}

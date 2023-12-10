@@ -17,7 +17,7 @@ data "aws_ami" "latest_amazon_linux" {
 data "terraform_remote_state" "network" { // This is to use Outputs from Remote State
   backend = "s3"
   config = {
-    bucket = "impressive-neighbours-staging-komal"      // Bucket from where to GET Terraform State
+    bucket = "impressive-neighbours-production-komal"      // Bucket from where to GET Terraform State
     key    = "network/terraform.tfstate" // Object name in the bucket to GET Terraform State
     region = "us-east-1"                            // Region where bucket created
   }
@@ -51,7 +51,7 @@ resource "aws_instance" "web_server" {
   associate_public_ip_address = false
   
   root_block_device {
-  encrypted = var.env == "prod"
+  encrypted = var.env == "production"
   }
 
   lifecycle {
@@ -220,7 +220,7 @@ resource "aws_launch_configuration" "web_server_lc" {
   security_groups = [aws_security_group.web_sg.id]
   
   root_block_device {
-    encrypted = var.env == "prod"
+    encrypted = var.env == "production"
   }
 }
 
